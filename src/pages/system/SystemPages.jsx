@@ -78,11 +78,367 @@ const userCols = [
     },
 ];
 
+function UserFormModal({ open, onClose, onSave, item, saving }) {
+    const { register, handleSubmit, reset, setValue, watch } = useForm();
+    const [avatarPreview, setAvatarPreview] = useState(null);
+    const [resumeFileName, setResumeFileName] = useState(null);
+
+    useEffect(() => {
+        reset({
+            name: item?.name || "",
+            email: item?.email || "",
+            role: item?.role || "admin",
+            availabilityStatus: item?.availabilityStatus || "available",
+            currentPosition: item?.currentPosition || "",
+            tagline: item?.tagline || "",
+            bio: item?.bio || "",
+            yearsOfExperience: item?.yearsOfExperience || "",
+            location: item?.location || "",
+            timezone: item?.timezone || "",
+            githubUrl: item?.githubUrl || "",
+            linkedinUrl: item?.linkedinUrl || "",
+            twitterUrl: item?.twitterUrl || "",
+            behanceUrl: item?.behanceUrl || "",
+            dribbbleUrl: item?.dribbbleUrl || "",
+        });
+        // Reset previews to existing values on open
+        setAvatarPreview(item?.avatar?.url || null);
+        setResumeFileName(item?.resume?.url ? "resume.pdf" : null);
+    }, [item, open]);
+
+    const handleAvatarChange = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        setValue("avatar", file);
+        setAvatarPreview(URL.createObjectURL(file));
+    };
+
+    const handleResumeChange = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        setValue("resume", file);
+        setResumeFileName(file.name);
+    };
+
+    const onSubmit = async (data) => {
+        const fd = new FormData();
+        Object.entries(data).forEach(([k, v]) => {
+            if (v !== undefined && v !== null && v !== "") fd.append(k, v);
+        });
+        await onSave(fd);
+    };
+
+    return (
+        <Dialog open={open} onOpenChange={onClose}>
+            <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+                <DialogHeader>
+                    <DialogTitle>{item ? "Edit User" : "New User"}</DialogTitle>
+                </DialogHeader>
+
+                <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+                    {/* ── Avatar & Resume uploads (top, prominent) ── */}
+                    <div className="flex gap-4 p-4 rounded-xl border bg-muted/30">
+                        {/* Avatar */}
+                        <div className="flex flex-col items-center gap-2">
+                            <div className="relative w-16 h-16">
+                                {avatarPreview ? (
+                                    <img
+                                        src={avatarPreview}
+                                        alt="Avatar"
+                                        className="w-16 h-16 rounded-full object-cover border-2 border-border"
+                                    />
+                                ) : (
+                                    <div className="w-16 h-16 rounded-full bg-muted border-2 border-dashed border-border flex items-center justify-center text-xl font-semibold text-muted-foreground">
+                                        {item?.name?.[0] || "?"}
+                                    </div>
+                                )}
+                                {/* Small camera icon overlay */}
+                                <label
+                                    htmlFor="avatar-upload"
+                                    className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-primary flex items-center justify-center cursor-pointer hover:bg-primary/90 transition-colors"
+                                    title="Change avatar"
+                                >
+                                    <svg
+                                        width="12"
+                                        height="12"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="white"
+                                        strokeWidth="2.5"
+                                    >
+                                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                                        <circle cx="12" cy="13" r="4" />
+                                    </svg>
+                                </label>
+                                <input
+                                    id="avatar-upload"
+                                    type="file"
+                                    accept="image/*"
+                                    className="hidden"
+                                    onChange={handleAvatarChange}
+                                />
+                            </div>
+                            <span className="text-[10px] text-muted-foreground">Avatar</span>
+                        </div>
+
+                        {/* Divider */}
+                        <div className="w-px bg-border" />
+
+                        {/* Resume */}
+                        <div className="flex-1 flex flex-col justify-center gap-2">
+                            <p className="text-xs font-medium">Resume / CV</p>
+                            {resumeFileName ? (
+                                <>
+                                    <div className="flex items-center gap-2 p-2 rounded-lg bg-background border">
+                                        {/* PDF icon */}
+                                        <div className="w-7 h-7 rounded bg-red-50 flex items-center justify-center shrink-0">
+                                            <svg
+                                                width="14"
+                                                height="14"
+                                                viewBox="0 0 24 24"
+                                                fill="none"
+                                                stroke="#ef4444"
+                                                strokeWidth="2"
+                                            >
+                                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                                <polyline points="14 2 14 8 20 8" />
+                                                <line x1="16" y1="13" x2="8" y2="13" />
+                                                <line x1="16" y1="17" x2="8" y2="17" />
+                                                <polyline points="10 9 9 9 8 9" />
+                                            </svg>
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-xs font-medium truncate">{resumeFileName}</p>
+                                            {item?.resume?.url && resumeFileName === "resume.pdf" && (
+                                                <a
+                                                    href={item.resume.url}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="text-[10px] text-blue-500 hover:underline"
+                                                >
+                                                    View current
+                                                </a>
+                                            )}
+                                        </div>
+                                        <label
+                                            htmlFor="resume-upload"
+                                            className="text-[10px] text-primary cursor-pointer hover:underline shrink-0"
+                                        >
+                                            Replace
+                                        </label>
+                                    </div>
+                                </>
+                            ) : (
+                                <label
+                                    htmlFor="resume-upload"
+                                    className="flex items-center gap-2 p-2 rounded-lg border border-dashed cursor-pointer hover:bg-muted/50 transition-colors"
+                                >
+                                    <svg
+                                        width="14"
+                                        height="14"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        strokeWidth="2"
+                                        className="text-muted-foreground"
+                                    >
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                        <polyline points="17 8 12 3 7 8" />
+                                        <line x1="12" y1="3" x2="12" y2="15" />
+                                    </svg>
+                                    <span className="text-xs text-muted-foreground">Upload PDF resume</span>
+                                </label>
+                            )}
+                            <input
+                                id="resume-upload"
+                                type="file"
+                                accept=".pdf"
+                                className="hidden"
+                                onChange={handleResumeChange}
+                            />
+                        </div>
+                    </div>
+
+                    {/* ── Basic Info ── */}
+                    <div>
+                        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2">
+                            Basic Info
+                        </p>
+                        <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-1.5">
+                                <Label className="text-xs">Name *</Label>
+                                <Input
+                                    {...register("name", { required: true })}
+                                    className="h-8 text-sm"
+                                    placeholder="Full name"
+                                />
+                            </div>
+                            <div className="space-y-1.5">
+                                <Label className="text-xs">Email *</Label>
+                                <Input
+                                    {...register("email", { required: true })}
+                                    type="email"
+                                    className="h-8 text-sm"
+                                    placeholder="email@example.com"
+                                />
+                            </div>
+                            <div className="space-y-1.5">
+                                <Label className="text-xs">Role</Label>
+                                <Select defaultValue={watch("role")} onValueChange={(v) => setValue("role", v)}>
+                                    <SelectTrigger className="h-8 text-sm">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {["admin", "user"].map((r) => (
+                                            <SelectItem key={r} value={r} className="text-sm capitalize">
+                                                {r}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="space-y-1.5">
+                                <Label className="text-xs">Availability</Label>
+                                <Select
+                                    defaultValue={watch("availabilityStatus")}
+                                    onValueChange={(v) => setValue("availabilityStatus", v)}
+                                >
+                                    <SelectTrigger className="h-8 text-sm">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {[
+                                            { value: "available", label: "Available" },
+                                            { value: "busy", label: "Busy" },
+                                            { value: "not_available", label: "Not Available" },
+                                        ].map((s) => (
+                                            <SelectItem key={s.value} value={s.value} className="text-sm">
+                                                {s.label}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* ── Profile ── */}
+                    <div>
+                        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2">
+                            Profile
+                        </p>
+                        <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-1.5">
+                                <Label className="text-xs">Current Position</Label>
+                                <Input
+                                    {...register("currentPosition")}
+                                    className="h-8 text-sm"
+                                    placeholder="e.g. Full Stack Developer"
+                                />
+                            </div>
+                            <div className="space-y-1.5">
+                                <Label className="text-xs">Years of Experience</Label>
+                                <Input
+                                    {...register("yearsOfExperience")}
+                                    type="number"
+                                    min={0}
+                                    max={50}
+                                    className="h-8 text-sm"
+                                />
+                            </div>
+                            <div className="col-span-2 space-y-1.5">
+                                <Label className="text-xs">Tagline</Label>
+                                <Input
+                                    {...register("tagline")}
+                                    className="h-8 text-sm"
+                                    placeholder="e.g. Building things for the web"
+                                />
+                            </div>
+                            <div className="col-span-2 space-y-1.5">
+                                <Label className="text-xs">Bio</Label>
+                                <Textarea
+                                    {...register("bio")}
+                                    rows={3}
+                                    className="text-sm"
+                                    placeholder="Short bio..."
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* ── Location ── */}
+                    <div>
+                        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2">
+                            Location
+                        </p>
+                        <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-1.5">
+                                <Label className="text-xs">Location</Label>
+                                <Input
+                                    {...register("location")}
+                                    className="h-8 text-sm"
+                                    placeholder="e.g. Delhi, India"
+                                />
+                            </div>
+                            <div className="space-y-1.5">
+                                <Label className="text-xs">Timezone</Label>
+                                <Input
+                                    {...register("timezone")}
+                                    className="h-8 text-sm"
+                                    placeholder="e.g. Asia/Kolkata"
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* ── Social Links ── */}
+                    <div>
+                        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2">
+                            Social Links
+                        </p>
+                        <div className="grid grid-cols-2 gap-3">
+                            {[
+                                { field: "githubUrl", label: "GitHub", placeholder: "https://github.com/username" },
+                                {
+                                    field: "linkedinUrl",
+                                    label: "LinkedIn",
+                                    placeholder: "https://linkedin.com/in/username",
+                                },
+                                { field: "twitterUrl", label: "Twitter", placeholder: "https://twitter.com/username" },
+                                { field: "behanceUrl", label: "Behance", placeholder: "https://behance.net/username" },
+                                {
+                                    field: "dribbbleUrl",
+                                    label: "Dribbble",
+                                    placeholder: "https://dribbble.com/username",
+                                },
+                            ].map(({ field, label, placeholder }) => (
+                                <div key={field} className="space-y-1.5">
+                                    <Label className="text-xs">{label}</Label>
+                                    <Input {...register(field)} className="h-8 text-sm" placeholder={placeholder} />
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    <DialogFooter className="gap-2 pt-2">
+                        <Button type="button" variant="outline" size="sm" onClick={onClose}>
+                            Cancel
+                        </Button>
+                        <Button type="submit" size="sm" disabled={saving}>
+                            {saving ? "Saving..." : item ? "Update" : "Create"}
+                        </Button>
+                    </DialogFooter>
+                </form>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
 export const UsersPage = createResourcePage({
     stateKey: "users",
     actions: usersResource.actions,
     columns: userCols,
-    FormModal: null,
+    FormModal: UserFormModal,
     title: "Users",
 });
 
