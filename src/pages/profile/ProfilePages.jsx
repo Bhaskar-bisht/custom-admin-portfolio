@@ -4,6 +4,7 @@ import { format } from "date-fns";
 import { Star } from "lucide-react";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
+import { useDispatch, useSelector } from "react-redux";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "../../components/ui/dialog";
@@ -17,6 +18,7 @@ import {
     educationsResource,
     experiencesResource,
     skillsResource,
+    technologiesResource,
 } from "../../store/slices/resourceSlices";
 import { createResourcePage } from "../ResourcePage";
 
@@ -59,8 +61,90 @@ const skillCols = [
     },
 ];
 
+// function SkillModal({ open, onClose, onSave, item, saving }) {
+//     const { register, handleSubmit, reset, setValue, watch } = useForm();
+//     useEffect(() => {
+//         reset(
+//             item
+//                 ? {
+//                       technologyId: item.technologyId?._id || item.technologyId || "",
+//                       proficiencyPercentage: item.proficiencyPercentage || 50,
+//                       yearsOfExperience: item.yearsOfExperience || 0,
+//                       isPrimarySkill: item.isPrimarySkill || false,
+//                       displayOrder: item.displayOrder || 0,
+//                   }
+//                 : { proficiencyPercentage: 50, yearsOfExperience: 0, isPrimarySkill: false, displayOrder: 0 },
+//         );
+//     }, [item, open]);
+//     const onSubmit = async (data) => {
+//         await onSave(data);
+//     };
+//     return (
+//         <Dialog open={open} onOpenChange={onClose}>
+//             <DialogContent className="max-w-md">
+//                 <DialogHeader>
+//                     <DialogTitle>{item ? "Edit Skill" : "New Skill"}</DialogTitle>
+//                 </DialogHeader>
+//                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
+//                     <div className="space-y-1.5">
+//                         <Label className="text-xs">Technology ID *</Label>
+//                         <Input
+//                             {...register("technologyId", { required: true })}
+//                             placeholder="Technology ObjectId"
+//                             className="h-8 text-sm"
+//                         />
+//                     </div>
+//                     <div className="grid grid-cols-2 gap-3">
+//                         <div className="space-y-1.5">
+//                             <Label className="text-xs">Proficiency %</Label>
+//                             <Input
+//                                 {...register("proficiencyPercentage", { valueAsNumber: true })}
+//                                 type="number"
+//                                 min={0}
+//                                 max={100}
+//                                 className="h-8 text-sm"
+//                             />
+//                         </div>
+//                         <div className="space-y-1.5">
+//                             <Label className="text-xs">Years of Experience</Label>
+//                             <Input
+//                                 {...register("yearsOfExperience", { valueAsNumber: true })}
+//                                 type="number"
+//                                 min={0}
+//                                 className="h-8 text-sm"
+//                             />
+//                         </div>
+//                     </div>
+//                     <div className="flex items-center justify-between rounded-lg border p-3">
+//                         <Label className="text-xs font-medium">Primary Skill</Label>
+//                         <Switch
+//                             checked={watch("isPrimarySkill")}
+//                             onCheckedChange={(v) => setValue("isPrimarySkill", v)}
+//                         />
+//                     </div>
+//                     <DialogFooter className="gap-2 pt-2">
+//                         <Button type="button" variant="outline" size="sm" onClick={onClose}>
+//                             Cancel
+//                         </Button>
+//                         <Button type="submit" size="sm" disabled={saving}>
+//                             {saving ? "Saving..." : item ? "Update" : "Create"}
+//                         </Button>
+//                     </DialogFooter>
+//                 </form>
+//             </DialogContent>
+//         </Dialog>
+//     );
+// }
+
 function SkillModal({ open, onClose, onSave, item, saving }) {
     const { register, handleSubmit, reset, setValue, watch } = useForm();
+    const dispatch = useDispatch();
+    const { items: technologies, loading: techLoading } = useSelector((s) => s.technologies);
+
+    useEffect(() => {
+        if (open) dispatch(technologiesResource.actions.fetchAll());
+    }, [open]);
+
     useEffect(() => {
         reset(
             item
@@ -74,9 +158,11 @@ function SkillModal({ open, onClose, onSave, item, saving }) {
                 : { proficiencyPercentage: 50, yearsOfExperience: 0, isPrimarySkill: false, displayOrder: 0 },
         );
     }, [item, open]);
+
     const onSubmit = async (data) => {
         await onSave(data);
     };
+
     return (
         <Dialog open={open} onOpenChange={onClose}>
             <DialogContent className="max-w-md">
@@ -85,12 +171,30 @@ function SkillModal({ open, onClose, onSave, item, saving }) {
                 </DialogHeader>
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
                     <div className="space-y-1.5">
-                        <Label className="text-xs">Technology ID *</Label>
-                        <Input
-                            {...register("technologyId", { required: true })}
-                            placeholder="Technology ObjectId"
-                            className="h-8 text-sm"
-                        />
+                        <Label className="text-xs">Technology *</Label>
+                        <Select value={watch("technologyId") || ""} onValueChange={(v) => setValue("technologyId", v)}>
+                            <SelectTrigger className="h-8 text-sm">
+                                <SelectValue placeholder={techLoading ? "Loading..." : "Select technology"} />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {(technologies || []).map((tech) => (
+                                    <SelectItem key={tech._id} value={tech._id} className="text-sm">
+                                        <div className="flex items-center gap-2">
+                                            {tech.logo?.url && (
+                                                <img
+                                                    src={tech.logo.url}
+                                                    alt=""
+                                                    className="w-4 h-4 rounded object-contain"
+                                                />
+                                            )}
+                                            {tech.name}
+                                        </div>
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        {/* Hidden input for react-hook-form validation */}
+                        <input type="hidden" {...register("technologyId", { required: true })} />
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                         <div className="space-y-1.5">
